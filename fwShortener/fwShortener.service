@@ -1,0 +1,11 @@
+[Unit]
+Description=fwShortener
+
+[Service]
+User=root
+WorkingDirectory=/root/fwShortener
+ExecStart=/bin/dotnet fwShortener.dll --urls=http://localhost:5009/
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
