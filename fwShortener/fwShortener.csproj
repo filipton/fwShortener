@@ -12,15 +12,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="wwwroot\dm.js">
+      <Content Update="wwwroot\*">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
-      <Content Update="wwwroot\error.html">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
-      <Content Update="wwwroot\index.html">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="images" />
     </ItemGroup>
 
 </Project>
