@@ -32,11 +32,11 @@ public class SQLConnection
         return "";
     }
     
-    public static async Task<bool> RemoveUrl(string id)
+    public static async Task<bool> RemoveUrl(string rid)
     {
         SqliteCommand command = Connection.CreateCommand();
-        command.CommandText = $"DELETE FROM urls WHERE id=$id;";
-        command.Parameters.AddWithValue("$id", id);
+        command.CommandText = $"DELETE FROM urls WHERE rowid=$rid;";
+        command.Parameters.AddWithValue("$rid", rid);
         return await command.ExecuteNonQueryAsync() > 0;
     }
     
@@ -48,18 +48,18 @@ public class SQLConnection
         return await command.ExecuteNonQueryAsync() > 0;
     }
 
-    public record UrlsRecord(string Id, string Url);
+    public record UrlsRecord(string RowId, string Id, string Url);
     public static async Task <List<UrlsRecord>> GetUrls(int from = 0, int to = int.MaxValue)
     {
         List<UrlsRecord> urls = new List<UrlsRecord>();
 
         SqliteCommand command = Connection.CreateCommand();
-        command.CommandText = $"SELECT * FROM urls LIMIT {from},{to};";
+        command.CommandText = $"SELECT rowid, * FROM urls LIMIT {from},{to};";
         using (var reader = await command.ExecuteReaderAsync())
         {
             for (int i = 0; reader.Read(); i++)
             {
-                urls.Add(new UrlsRecord(reader.GetString(0), reader.GetString(1)));
+                urls.Add(new UrlsRecord(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
             }
         }
 

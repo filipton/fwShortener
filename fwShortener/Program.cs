@@ -52,7 +52,8 @@ public class Program
         app.MapPost("/report", async ctx =>
         {
             //.Replace("{ResponseMessage}", "")
-            string output = File.ReadAllText("wwwroot/report-complete.html");
+            string output = await File.ReadAllTextAsync("wwwroot/complete.html");
+            output = output.Replace("{Title}", "Report Abuse");
 
             string aurl = ctx.Request.Form["aurl"];
             string amsg = ctx.Request.Form["amsg"];
@@ -128,56 +129,53 @@ public class Program
         app.UseEndpoints(endpoints =>
         {
             //endpoints.MapGet("/", () => "Api");
-            endpoints.MapGet("/links/{from:int}/{count:int}", async (HttpRequest request, HttpResponse response, int from, int count) =>
+            endpoints.MapGet("/get/{type}/{from:int}/{count:int}", async (HttpRequest request, HttpResponse response, string type, int from, int count) =>
             {
                 if (request.Cookies["auth"] == LoginToken)
                 {
                     response.ContentType = "application/json";
 
-                    await response.WriteAsJsonAsync(await SQLConnection.GetUrls(from, count));
+                    if (type == "links")
+                    {
+                        await response.WriteAsJsonAsync(await SQLConnection.GetUrls(from, count));
+                    }
+                    else if (type == "reports")
+                    {
+                        await response.WriteAsJsonAsync(await SQLConnection.GetReports(from, count));
+                    }
                 }
                 else
                 {
                     response.StatusCode = 401;
                 }
             });
-            endpoints.MapGet("/reports/{from:int}/{count:int}", async (HttpRequest request, HttpResponse response, int from, int count) =>
-            {
-                if (request.Cookies["auth"] == LoginToken)
-                {
-                    response.ContentType = "application/json";
 
-                    await response.WriteAsJsonAsync(await SQLConnection.GetReports(from, count));
-                }
-                else
+            endpoints.MapGet("/count/{type}", async (HttpRequest request, HttpResponse response, string type) =>
+            {
+                if (type == "links")
                 {
-                    response.StatusCode = 401;
+                    await response.WriteAsync((await SQLConnection.GetUrlsCount()).ToString());
+                }
+                else if (type == "reports")
+                {
+                    await response.WriteAsync((await SQLConnection.GetReportsCount()).ToString());
                 }
             });
             
-            endpoints.MapGet("/links", async () => await SQLConnection.GetUrlsCount());
-            endpoints.MapGet("/reports", async () => await SQLConnection.GetReportsCount());
-
-            endpoints.MapGet("/remove/link/{id}", async (HttpRequest request, HttpResponse response, string id) =>
+            endpoints.MapGet("/remove/{type}/{id}", async (HttpRequest request, HttpResponse response, string type, string id) =>
             {
                 if (request.Cookies["auth"] == LoginToken)
                 {
                     response.ContentType = "application/json";
 
-                    await response.WriteAsync((await SQLConnection.RemoveUrl(id)).ToString());
-                }
-                else
-                {
-                    response.StatusCode = 401;
-                }
-            });
-            endpoints.MapGet("/remove/report/{rid}", async (HttpRequest request, HttpResponse response, string rid) =>
-            {
-                if (request.Cookies["auth"] == LoginToken)
-                {
-                    response.ContentType = "application/json";
-
-                    await response.WriteAsync((await SQLConnection.RemoveReport(rid)).ToString());
+                    if (type == "links")
+                    {
+                        await response.WriteAsync((await SQLConnection.RemoveUrl(id)).ToString());
+                    }
+                    else if (type == "reports")
+                    {
+                        await response.WriteAsync((await SQLConnection.RemoveReport(id)).ToString());
+                    }
                 }
                 else
                 {
@@ -187,6 +185,15 @@ public class Program
         });
         app.UseStatusCodePages();
     }
+
+    public static async Task<string> GetInfoPage(string title, string msg)
+    {
+        string output = await File.ReadAllTextAsync("wwwroot/complete.html");
+        output = output.Replace("{ResponseMessage}", msg);
+        output = output.Replace("{Title}", title);
+
+        return output;
+    } 
     
     /*
      * Url Shortener
@@ -203,11 +210,11 @@ public class Program
                 && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
             {
                 SQLConnection.SetUrl(randomId, providedUrl);
-                await context.Response.WriteAsync($"https://filipton.tech/s/{randomId} will redirect you to: {context.Request.Form["surl"]}");   
+                await context.Response.WriteAsync(await GetInfoPage("Link created", $"<a href=\"https://filipton.tech/s/{randomId}\">https://filipton.tech/s/{randomId}</a> will redirect you to: {context.Request.Form["surl"]}"));   
             }
             else
             {
-                await context.Response.WriteAsync($"Url that you provided was not valid url!");   
+                await context.Response.WriteAsync(await GetInfoPage("Error", $"Url that you provided was not valid url!"));   
             }
         });
     }
@@ -256,11 +263,13 @@ public class Program
                     await image.SaveAsGifAsync(Path.Combine("images", randomId + ".gif"));
                 }
 
-                await context.Response.WriteAsync($"IMAGE SAVED AS: https://filipton.tech/i/{randomId} OR https://i.filipton.tech/{randomId}");
+                await context.Response.WriteAsync(await GetInfoPage("Image saved", 
+                    $"New image saved as: <a href=\"https://filipton.tech/i/{randomId}\">https://filipton.tech/i/{randomId}</a> OR " +
+                        $"<a href=\"https://i.filipton.tech/{randomId}\">https://i.filipton.tech/{randomId}</a>"));
             }
             else
             {
-                await context.Response.WriteAsync("This method takes one file!");
+                await context.Response.WriteAsync(await GetInfoPage("Error", "This method takes one file!"));
             }
         });
     }

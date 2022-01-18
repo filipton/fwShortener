@@ -24,9 +24,10 @@
         let pageCounter = 0;
         var maxPageCount = -1;
         
-        var mode;
+        var endpointMode = 'links';
         
         let tableSize = 10;
+        
         
         $(function() {
             if(maxPageCount === -1){
@@ -37,27 +38,21 @@
             }
         });
         
-        const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
-        
         function SetMode(_m){
-            mode = _m;
+           if(_m){
+               endpointMode = 'links';
+           }
+           else{
+               endpointMode = 'reports';
+           }
 
             pageCounter = 0;
-            
-            if(mode){
-                $.get('/api/links/',
-                    function (data, textStatus) {
-                        maxPageCount = Math.ceil(data/tableSize) - 1;
-                        Show();
-                    });
-            }
-            else{
-                $.get('/api/reports/',
-                    function (data, textStatus) {
-                        maxPageCount = Math.ceil(data/tableSize) - 1;
-                        Show();
-                    });
-            }
+
+            $.get(`/api/count/${endpointMode}`,
+                function (data, textStatus) {
+                    maxPageCount = Math.ceil(data/tableSize) - 1;
+                    Show();
+                });
             
             //true - links
             //false - reports
@@ -77,80 +72,49 @@
         
         
         function Show(){
-            if(mode){
-                $.get(`/api/links/${pageCounter*tableSize}/${tableSize}`,
-                    function (data){
-                        tmp = "";
-                        $.each(data, function(i, item) {
-                            tmp +=
-                                `<tr>` +
-                                `<th scope="row">${item.id}</th>` +
-                                `<td>${item.url}</td>` +
-                                `<td><button onclick="Remove('${item.id}')" class="btn btn-secondary btn-sm">REMOVE</button></td>` +
-                                `</tr>`;
-                        });
-
-                        $("#tbody").html(tmp);
+            $.get(`/api/get/${endpointMode}/${pageCounter*tableSize}/${tableSize}`,
+                function (data){
+                    tmp = "";
+                    $.each(data, function(i, item) {
+                        tmp +=
+                            `<tr>` +
+                            `<th scope="row">${item[Object.keys(item)[1]]}</th>` +
+                            `<td>${item[Object.keys(item)[2]]}</td>` +
+                            `<td><button onclick="Remove('${item.rowId}')" class="btn btn-secondary btn-sm">REMOVE</button></td>` +
+                            `</tr>`;
                     });
-            }
-            else{
-                $.get(`/api/reports/${pageCounter*tableSize}/${tableSize}`,
-                    function (data){
-                        tmp = "";
-                        $.each(data, function(i, item) {
-                            tmp +=
-                                `<tr>` +
-                                `<th scope="row">${item.url}</th>` +
-                                `<td>${item.msg}</td>` +
-                                `<td><button onclick="Remove('${item.rowId}')" class="btn btn-secondary btn-sm">REMOVE</button></td>` +
-                                `</tr>`;
-                        });
 
-                        $("#tbody").html(tmp);
-                    });
-            }
+                    $("#tbody").html(tmp);
+                });
         }
         
         function Remove(id){
-            if(mode){
-                $.get(`/api/remove/link/${id}`,
-                    function (data) {
-                        if(data !== true){
-                            alert("An error occured during removing URL...")
-                        }
-                    });
-
-                $.get('/api/links/',
-                    function (data) {
-                        maxPageCount = Math.ceil(data/tableSize) - 1;
-                        Show();
-                    });   
-            }
-            else{
-                $.get(`/api/remove/report/${id}`,
-                    function (data) {
-                        if(data !== true){
-                            alert("An error occured during removing URL...")
-                        }
-                    });
-
-                $.get('/api/reports/',
-                    function (data) {
-                        maxPageCount = Math.ceil(data/tableSize) - 1;
-                        Show();
-                    });
-            }
-        }
-        
-        function ChangeTableSize(size){
-            tableSize = size;
-
-            $.get('/api/links/',
+            $.get(`/api/remove/${endpointMode}/${id}`,
+                function (data) {
+                    if(data !== true){
+                        alert("An error occured during removing URL...")
+                    }
+                });
+            
+            $.get(`/api/count/${endpointMode}`,
                 function (data) {
                     maxPageCount = Math.ceil(data/tableSize) - 1;
                     Show();
                 });
         }
+        
+        function ChangeTableSize(size){
+            tableSize = size;
+
+            $.get(`/api/count/${endpointMode}`,
+                function (data) {
+                    maxPageCount = Math.ceil(data/tableSize) - 1;
+                    Show();
+                });
+        }
+
+
+        const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
     </script>
 </head>
 <body style="background-color: black;">
@@ -182,9 +146,9 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">URL</th>
-                        <th scope="col"></th>
+                        <th scope="col">&nbsp;</th>
+                        <th scope="col">&nbsp;</th>
+                        <th scope="col">&nbsp;</th>
                     </tr>
                 </thead>
                 <tbody id="tbody">
